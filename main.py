@@ -281,6 +281,8 @@ def main(args):
             # TODO: note that this only logs the last batch of images processed!
             for ann in coco_evaluator.coco_eval["bbox"].cocoDt.dataset["annotations"]:
                 target = targets[ann["image_id"]]
+                # Note: Not sure if orig_size should be used here, or target size due to transforms on the images
+                # (See make_coco_transforms)
                 wandb_bbox = coco_annotation_to_wandb_bbox(ann, orig_size = target["orig_size"].numpy())
                 wandb_validation_bboxes_detected[ann["image_id"]].append(wandb_bbox)
 
