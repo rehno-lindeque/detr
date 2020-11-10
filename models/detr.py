@@ -310,11 +310,10 @@ def build(args):
     # you should pass `num_classes` to be 2 (max_obj_id + 1).
     # For more details on this, check the following discussion
     # https://github.com/facebookresearch/detr/issues/108#issuecomment-650269223
-    num_classes = 20 if args.dataset_file != 'coco' else 91
-    if args.dataset_file == "coco_panoptic":
-        # for panoptic, we just add a num_classes that is large enough to hold
-        # max_obj_id + 1, but the exact value doesn't really matter
-        num_classes = 250
+
+    # Only the "part" class (id 1) + no_object class (id 2)
+    num_classes = 2
+
     device = torch.device(args.device)
 
     backbone = build_backbone(args)
