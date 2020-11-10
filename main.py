@@ -18,9 +18,15 @@ from models import build_model
 
 
 from PIL import Image
+import wandb
 
 # Surpress imagebomb error from PIL
 Image.MAX_IMAGE_PIXELS = 200000000
+
+# Initialize wandb
+wandb.init(
+  project="detr-experiment"
+)
 
 def get_args_parser():
     parser = argparse.ArgumentParser('Set transformer detector', add_help=False)
@@ -106,6 +112,26 @@ def get_args_parser():
     parser.add_argument('--dist_url', default='env://', help='url used to set up distributed training')
     return parser
 
+def coco_annotation_to_wandb_bbox(ann, orig_size):
+    category_labels = {
+        1: "part",
+        2: "no_object"
+    }
+    bbox = ann["bbox"]
+    wandb_bbox = {
+        "position": {
+            "minX": float(bbox[0]) / orig_size[1],
+            "maxX": float(bbox[0] + bbox[2])/ orig_size[1],
+            "minY": float(bbox[1]) / orig_size[0],
+            "maxY": float(bbox[1] + bbox[3]) / orig_size[0]
+        },
+        "class_id": ann["category_id"],
+        "box_caption" : "%d %s" % (int(ann["id"]), category_labels[ann["category_id"]]),
+        "scores" : {
+        },
+        "domain" : "percentage"
+    }
+    return wandb_bbox
 
 def main(args):
     utils.init_distributed_mode(args)
@@ -146,6 +172,16 @@ def main(args):
 
     dataset_train = build_dataset(image_set='train', args=args)
     dataset_val = build_dataset(image_set='val', args=args)
+
+    images = {}
+    targets = {}
+    for k,ds in enumerate(dataset_val):
+        image, target = ds
+        image_id: int = target["image_id"].numpy()[0]
+        if not (image_id in images.keys()):
+            images[image_id] = image
+            targets[image_id] = target
+            print("Image id #", image_id, " with ", target["boxes"].size()[0], " bboxes")
 
     if args.distributed:
         sampler_train = DistributedSampler(dataset_train)
@@ -193,6 +229,10 @@ def main(args):
             utils.save_on_master(coco_evaluator.coco_eval["bbox"].eval, output_dir / "eval.pth")
         return
 
+    # wandb monitor model during training
+    wandb.config.update(args)
+    # wandb.watch(model)
+
     print("Start training")
     start_time = time.time()
     for epoch in range(args.start_epoch, args.epochs):
@@ -224,6 +264,35 @@ def main(args):
                      **{f'test_{k}': v for k, v in test_stats.items()},
                      'epoch': epoch,
                      'n_parameters': n_parameters}
+        wandb.log(log_stats)
+
+        if epoch % 50 == 0:
+            wandb_validation_bboxes_detected = {}
+            wandb_class_labels = {  1: "part", 2: "no_object" }
+            wandb_validation_images = {}
+            wandb_media = {}
+
+            for k,ds in enumerate(dataset_val):
+                image, target = ds
+                image_id: int = target["image_id"].numpy()[0]
+                wandb_validation_bboxes_detected[image_id] = []
+
+            # iterate through predictions
+            # TODO: note that this only logs the last batch of images processed!
+            for ann in coco_evaluator.coco_eval["bbox"].cocoDt.dataset["annotations"]:
+                target = targets[ann["image_id"]]
+                wandb_bbox = coco_annotation_to_wandb_bbox(ann, orig_size = target["orig_size"].numpy())
+                wandb_validation_bboxes_detected[ann["image_id"]].append(wandb_bbox)
+
+            for image_id,wandb_bboxes_dt in wandb_validation_bboxes_detected.items():
+                wandb_validation_images[str(image_id)] = wandb.Image(
+                    images[image_id],
+                    boxes = {
+                        "predictions": { "box_data": wandb_bboxes_dt, "class_labels": wandb_class_labels },
+                    })
+            wandb_media[f'epoch_{epoch:03}'] = { "validation_images": wandb_validation_images }
+            wandb.log(wandb_media)
+            print(f'Images for epoch_{epoch:03} logged to wandb')
 
         if args.output_dir and utils.is_main_process():
             with (output_dir / "log.txt").open("a") as f:
