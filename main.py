@@ -17,6 +17,11 @@ from engine import evaluate, train_one_epoch
 from models import build_model
 
 
+from PIL import Image
+
+# Surpress imagebomb error from PIL
+Image.MAX_IMAGE_PIXELS = 200000000
+
 def get_args_parser():
     parser = argparse.ArgumentParser('Set transformer detector', add_help=False)
     parser.add_argument('--lr', default=1e-4, type=float)
