@@ -118,6 +118,12 @@ def coco_annotation_to_wandb_bbox(ann, orig_size):
         2: "no_object"
     }
     bbox = ann["bbox"]
+    category_id = ann["category_id"]
+    category_label = None
+    if category_id in category_labels.keys():
+        category_label = category_labels[category_id]
+    else:
+        category_label = str(category_id)
     wandb_bbox = {
         "position": {
             "minX": float(bbox[0]) / orig_size[1],
@@ -126,7 +132,7 @@ def coco_annotation_to_wandb_bbox(ann, orig_size):
             "maxY": float(bbox[1] + bbox[3]) / orig_size[0]
         },
         "class_id": ann["category_id"],
-        "box_caption" : "%d %s" % (int(ann["id"]), category_labels[ann["category_id"]]),
+        "box_caption" : "%d %s" % (int(ann["id"]), category_label),
         "scores" : {
         },
         "domain" : "percentage"
