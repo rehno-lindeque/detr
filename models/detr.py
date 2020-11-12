@@ -285,6 +285,26 @@ class PostProcess(nn.Module):
 
         return results
 
+class PostProcessRaw(nn.Module):
+    """ This module converts the model's output into the format expected by the coco api"""
+    @torch.no_grad()
+    def forward(self, outputs):
+        """ Perform the computation
+        Parameters:
+            outputs: raw outputs of the model
+        """
+        out_logits, out_bbox = outputs['pred_logits'], outputs['pred_boxes']
+
+        prob = F.softmax(out_logits, -1)
+        scores, labels = prob[..., :-1].max(-1)
+
+        # [cx,cy,w,h] format
+        boxes = out_bbox.unbind(-1)
+
+        results = [{'scores': s, 'labels': l, 'boxes': b} for s, l, b in zip(scores, labels, boxes)]
+
+        return results
+
 
 class MLP(nn.Module):
     """ Very simple multi-layer perceptron (also called FFN)"""
@@ -348,7 +368,7 @@ def build(args):
     criterion = SetCriterion(num_classes, matcher=matcher, weight_dict=weight_dict,
                              eos_coef=args.eos_coef, losses=losses)
     criterion.to(device)
-    postprocessors = {'bbox': PostProcess()}
+    postprocessors = {'bbox': PostProcess(),'raw': PostProcessRaw()}
     if args.masks:
         postprocessors['segm'] = PostProcessSegm()
         if args.dataset_file == "coco_panoptic":
