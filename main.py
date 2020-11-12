@@ -179,16 +179,6 @@ def main(args):
     dataset_train = build_dataset(image_set='train', args=args)
     dataset_val = build_dataset(image_set='val', args=args)
 
-    images = {}
-    targets = {}
-    for k,ds in enumerate(dataset_val):
-        image, target = ds
-        image_id: int = target["image_id"].numpy()[0]
-        if not (image_id in images.keys()):
-            images[image_id] = image
-            targets[image_id] = target
-            print("Image id #", image_id, " with ", target["boxes"].size()[0], " bboxes")
-
     if args.distributed:
         sampler_train = DistributedSampler(dataset_train)
         sampler_val = DistributedSampler(dataset_val, shuffle=False)
@@ -271,51 +261,6 @@ def main(args):
                      'epoch': epoch,
                      'n_parameters': n_parameters}
         wandb.log(log_stats)
-
-        if epoch % 50 == 0:
-            wandb_validation_bboxes_detected = {}
-            wandb_class_labels = {  1: "part", 2: "no_object" }
-            wandb_validation_images = {}
-            wandb_media = {}
-
-            for k,ds in enumerate(dataset_val):
-                image, target = ds
-                image_id: int = target["image_id"].numpy()[0]
-                wandb_validation_bboxes_detected[image_id] = []
-
-            # iterate through predictions
-            # TODO: note that this only logs the last batch of images processed!
-            for ann in coco_evaluator.coco_eval["bbox"].cocoDt.dataset["annotations"]:
-                target = targets[ann["image_id"]]
-                # Note: Not sure if orig_size should be used here, or target size due to transforms on the images
-                # (See make_coco_transforms)
-                wandb_bbox = coco_annotation_to_wandb_bbox(ann, orig_size = target["orig_size"].numpy())
-                wandb_validation_bboxes_detected[ann["image_id"]].append(wandb_bbox)
-
-            for image_id,wandb_bboxes_dt in wandb_validation_bboxes_detected.items():
-                wandb_validation_images[str(image_id)] = wandb.Image(
-                    images[image_id],
-                    boxes = {
-                        "predictions": { "box_data": wandb_bboxes_dt, "class_labels": wandb_class_labels },
-                    })
-            wandb_media[f'epoch_{epoch:03}'] = { "validation_images": wandb_validation_images }
-            wandb.log(wandb_media)
-            print(f'Images for epoch_{epoch:03} logged to wandb')
-
-        if args.output_dir and utils.is_main_process():
-            with (output_dir / "log.txt").open("a") as f:
-                f.write(json.dumps(log_stats) + "\n")
-
-            # for evaluation logs
-            if coco_evaluator is not None:
-                (output_dir / 'eval').mkdir(exist_ok=True)
-                if "bbox" in coco_evaluator.coco_eval:
-                    filenames = ['latest.pth']
-                    if epoch % 50 == 0:
-                        filenames.append(f'{epoch:03}.pth')
-                    for name in filenames:
-                        torch.save(coco_evaluator.coco_eval["bbox"].eval,
-                                   output_dir / "eval" / name)
 
     total_time = time.time() - start_time
     total_time_str = str(datetime.timedelta(seconds=int(total_time)))
