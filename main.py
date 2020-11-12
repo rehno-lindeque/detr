@@ -147,6 +147,11 @@ def pytorch_box_to_wandb_bbox(box,box_id,category_id,prefix="",score=0):
         1: "part",
         2: "no_object"
     }
+    category_label = None
+    if category_id in category_labels.keys():
+        category_label = category_labels[category_id]
+    else:
+        category_label = str(category_id)
     wandb_bbox = {
         "position": {
             # "minX": max(box[0] - (box[2] * 0.5), 0),
@@ -158,7 +163,7 @@ def pytorch_box_to_wandb_bbox(box,box_id,category_id,prefix="",score=0):
             "height": float(box[3]),
         },
         "class_id": int(category_id),
-        "box_caption" : "%s%d %s" % (prefix, int(box_id), category_labels[int(category_id)]),
+        "box_caption" : "%s%d %s" % (prefix, int(box_id), category_labels),
         "scores" : {
             # "acc": 0.1,
             "loss": float(score)
