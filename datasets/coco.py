@@ -21,14 +21,18 @@ class CocoDetection(torchvision.datasets.CocoDetection):
         self.prepare = ConvertCocoPolysToMask(return_masks)
 
     def __getitem__(self, idx):
-        img, target = super(CocoDetection, self).__getitem__(idx)
-        image_id = self.ids[idx]
+        # Modula for a tiny dataset
+        idx_mod = idx % len(self.ids)
+        img, target = super(CocoDetection, self).__getitem__(idx_mod)
+        image_id = self.ids[idx_mod]
         target = {'image_id': image_id, 'annotations': target}
         img, target = self.prepare(img, target)
         if self._transforms is not None:
             img, target = self._transforms(img, target)
         return img, target
 
+    def __len__(self) -> int:
+        return len(self.ids) * 200
 
 def convert_coco_poly_to_mask(segmentations, height, width):
     masks = []

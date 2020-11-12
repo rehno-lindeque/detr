@@ -76,9 +76,9 @@ class SmoothedValue(object):
     def value(self):
         return self.deque[-1]
 
-    @property
-    def measurable(self):
-        return self.count > 0
+    # @property
+    # def measurable(self):
+    #     return self.count > 0
 
     def __str__(self):
         return self.fmt.format(

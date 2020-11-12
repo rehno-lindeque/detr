@@ -61,8 +61,9 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
     # gather the stats from all processes
     metric_logger.synchronize_between_processes()
     # if meter.measurable:
-    #     print("Averaged stats:", metric_logger)
-    return {k: meter.global_avg for k, meter in metric_logger.meters.items() if meter.measurable}
+    print("Averaged stats:", metric_logger)
+    # return {k: meter.global_avg for k, meter in metric_logger.meters.items() if meter.measurable}
+    return {k: meter.global_avg for k, meter in metric_logger.meters.items()}
 
 
 @torch.no_grad()
