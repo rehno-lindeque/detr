@@ -182,11 +182,11 @@ class WandbEvaluator(object):
         self.epoch = epoch
 
     def send(self, targets, results, samples):
-        if (self.epoch % 50) != 0:
+        if (self.epoch % 10) != 0:
             return
-        if self.batch_counter > 0:
-            # Only one batch at a time works?
-            return
+        # if self.batch_counter > 0:
+        #     # Only one batch at a time works?
+        #     return
         images,mask = samples.decompose()
 
         # for target in targets:
@@ -259,7 +259,7 @@ def main(args):
 
     if args.distributed:
         sampler_train = DistributedSampler(dataset_train)
-        sampler_val = DistributedSampler(dataset_val, shuffle=False)
+        sampler_val = DistributedSampler(dataset_val, shuffle=True)
     else:
         sampler_train = torch.utils.data.RandomSampler(dataset_train)
         sampler_val = torch.utils.data.SequentialSampler(dataset_val)
