@@ -336,8 +336,7 @@ def main(args):
             model, criterion, postprocessors, data_loader_val, base_ds, device, args.output_dir, WandbEvaluator(epoch)
         )
 
-        log_stats = {**{f'train_{k}': v for k, v in train_stats.items()},
-                     **{f'test_{k}': v for k, v in test_stats.items()},
+        log_stats = {**{f'test_{k}': v for k, v in test_stats.items()},
                      'epoch': epoch,
                      'n_parameters': n_parameters}
         wandb.log(log_stats)

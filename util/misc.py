@@ -22,6 +22,8 @@ if float(torchvision.__version__[:3]) < 0.7:
     from torchvision.ops import _new_empty_tensor
     from torchvision.ops.misc import _output_size
 
+import wandb
+
 
 class SmoothedValue(object):
     """Track a series of values and provide access to smoothed values over a
@@ -160,9 +162,10 @@ def reduce_dict(input_dict, average=True):
 
 
 class MetricLogger(object):
-    def __init__(self, delimiter="\t"):
+    def __init__(self, epoch, delimiter="\t"):
         self.meters = defaultdict(SmoothedValue)
         self.delimiter = delimiter
+        self.epoch = epoch
 
     def update(self, **kwargs):
         for k, v in kwargs.items():
@@ -241,15 +244,21 @@ class MetricLogger(object):
                         i, len(iterable), eta=eta_string,
                         meters=str(self),
                         time=str(iter_time), data=str(data_time)))
+
+            # Log every step to wandb
+            train_stats = {k: meter.global_avg for k, meter in self.meters.items()}
+            log_stats = {**{f'train_{k}': v for k, v in train_stats.items()},
+                         'epoch': self.epoch}
+            wandb.log(log_stats)
+
             i += 1
             end = time.time()
+
         total_time = time.time() - start_time
         total_time_str = str(datetime.timedelta(seconds=int(total_time)))
-        if len(iterable) > 0:
-            print('{} Total time: {} ({:.4f} s / it)'.format(
-                header, total_time_str, total_time / len(iterable)))
-        else:
-            print('{} Total time: {} (len(iterable) = 0)'.format(header, total_time_str))
+        print('{} Total time: {} ({:.4f} s / it)'.format(
+            header, total_time_str, total_time / len(iterable)))
+
 
 
 def get_sha():
