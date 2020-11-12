@@ -148,6 +148,7 @@ def pytorch_box_to_wandb_bbox(box,box_id,category_id,prefix="",score=0):
         2: "no_object"
     }
     category_label = None
+    category_id = int(category_id)
     if category_id in category_labels.keys():
         category_label = category_labels[category_id]
     else:
@@ -163,7 +164,7 @@ def pytorch_box_to_wandb_bbox(box,box_id,category_id,prefix="",score=0):
             "height": float(box[3]),
         },
         "class_id": int(category_id),
-        "box_caption" : "%s%d %s" % (prefix, int(box_id), category_labels),
+        "box_caption" : "%s%d %s" % (prefix, int(box_id), category_label),
         "scores" : {
             # "acc": 0.1,
             "loss": float(score)
