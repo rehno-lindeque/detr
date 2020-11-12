@@ -23,6 +23,9 @@ import wandb
 # Surpress imagebomb error from PIL
 Image.MAX_IMAGE_PIXELS = 200000000
 
+# Hard-coded class labels
+wandb_class_labels = { 1: "part", 2: "no_object" }
+
 # Initialize wandb
 wandb.init(
   project="detr-experiment"
@@ -134,6 +137,31 @@ def coco_annotation_to_wandb_bbox(ann, orig_size):
         "class_id": ann["category_id"],
         "box_caption" : "%d %s" % (int(ann["id"]), category_label),
         "scores" : {
+        },
+        "domain" : "percentage"
+    }
+    return wandb_bbox
+
+def pytorch_box_to_wandb_bbox(box,box_id,category_id,prefix="",score=0):
+    category_labels = {
+        1: "part",
+        2: "no_object"
+    }
+    wandb_bbox = {
+        "position": {
+            # "minX": max(box[0] - (box[2] * 0.5), 0),
+            # "maxX": min(box[0] + (box[2] * 0.5), 1),
+            # "minY": max(box[1] - (box[3] * 0.5), 0),
+            # "maxY": min(box[1] + (box[3] * 0.5), 1)
+            "middle": [float(box[0]), float(box[1])],
+            "width": float(box[2]),
+            "height": float(box[3]),
+        },
+        "class_id": int(category_id),
+        "box_caption" : "%s%d %s" % (prefix, int(box_id), category_labels[int(category_id)]),
+        "scores" : {
+            # "acc": 0.1,
+            "loss": float(score)
         },
         "domain" : "percentage"
     }
