@@ -66,7 +66,7 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
 
 
 @torch.no_grad()
-def evaluate(model, criterion, postprocessors, data_loader, base_ds, device, output_dir):
+def evaluate(model, criterion, postprocessors, data_loader, base_ds, device, output_dir, wandb_evaluator):
     model.eval()
     criterion.eval()
 
@@ -87,6 +87,7 @@ def evaluate(model, criterion, postprocessors, data_loader, base_ds, device, out
         )
 
     for samples, targets in metric_logger.log_every(data_loader, 10, header):
+        cpu_samples = samples
         samples = samples.to(device)
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
 
@@ -106,11 +107,14 @@ def evaluate(model, criterion, postprocessors, data_loader, base_ds, device, out
         metric_logger.update(class_error=loss_dict_reduced['class_error'])
 
         orig_target_sizes = torch.stack([t["orig_size"] for t in targets], dim=0)
+        raw_results = postprocessors['raw'](outputs)
         results = postprocessors['bbox'](outputs, orig_target_sizes)
         if 'segm' in postprocessors.keys():
             target_sizes = torch.stack([t["size"] for t in targets], dim=0)
             results = postprocessors['segm'](results, outputs, orig_target_sizes, target_sizes)
         res = {target['image_id'].item(): output for target, output in zip(targets, results)}
+        if wandb_evaluator is not None:
+            wandb_evaluator.send(targets,raw_results,cpu_samples)
         if coco_evaluator is not None:
             coco_evaluator.update(res)
 

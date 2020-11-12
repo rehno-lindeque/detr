@@ -167,6 +167,47 @@ def pytorch_box_to_wandb_bbox(box,box_id,category_id,prefix="",score=0):
     }
     return wandb_bbox
 
+class WandbEvaluator(object):
+    def __init__(self, epoch):
+        self.batch_counter = 0
+        self.epoch = epoch
+
+    def send(self, targets, results, samples):
+        if (self.epoch % 50) != 0:
+            return
+        if self.batch_counter > 0:
+            # Only one batch at a time works?
+            return
+        images,mask = samples.decompose()
+
+        # for target in targets:
+        wandb_images = []
+        for image, target,result in zip(images,targets,results):
+            box_data_gt = []
+            box_data_dt = []
+            # ground truth
+            k = 0
+            for box, label in zip(target["boxes"], target["labels"]):
+                box_data_gt.append(pytorch_box_to_wandb_bbox(box,k,label,prefix="gt",score=0))
+                k += 1
+            # predictions
+            k = 0
+            for box, label, score in zip(result["boxes"], result["labels"], result["scores"]):
+                box_data_dt.append(pytorch_box_to_wandb_bbox(box,k,label,prefix="dt",score=score))
+                k += 1
+            wandb_images.append(wandb.Image(image, boxes = {
+                "ground_truth": { "box_data": box_data_gt, "class_labels": wandb_class_labels },
+                "predictions": { "box_data": box_data_dt, "class_labels": wandb_class_labels }
+            }))
+        validation_images = {}
+        validation_images[f'epoch_{self.epoch}_batch_{self.batch_counter}'] = wandb_images
+        wandb.log(validation_images)
+
+        for (target,result) in zip(targets,results):
+            print("samples from image id #", target["image_id"], " with ", target["boxes"].size()[0], "ground truth boxes and ", result["boxes"].size()[0], " predicted boxes" )
+        print("batch counter", self.batch_counter)
+        self.batch_counter += 1
+
 def main(args):
     utils.init_distributed_mode(args)
     print("git:\n  {}\n".format(utils.get_sha()))
@@ -281,7 +322,7 @@ def main(args):
                 }, checkpoint_path)
 
         test_stats, coco_evaluator = evaluate(
-            model, criterion, postprocessors, data_loader_val, base_ds, device, args.output_dir
+            model, criterion, postprocessors, data_loader_val, base_ds, device, args.output_dir, WandbEvaluator(epoch)
         )
 
         log_stats = {**{f'train_{k}': v for k, v in train_stats.items()},
