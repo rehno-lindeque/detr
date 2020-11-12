@@ -65,11 +65,11 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
 
 
 @torch.no_grad()
-def evaluate(model, criterion, postprocessors, data_loader, base_ds, device, output_dir, wandb_evaluator):
+def evaluate(model, criterion, postprocessors, data_loader, base_ds, device, output_dir, wandb_evaluator, epoch : int):
     model.eval()
     criterion.eval()
 
-    metric_logger = utils.MetricLogger(delimiter="  ")
+    metric_logger = utils.MetricLogger(epoch, delimiter="  ")
     metric_logger.add_meter('class_error', utils.SmoothedValue(window_size=1, fmt='{value:.2f}'))
     header = 'Test:'
 
