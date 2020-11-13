@@ -257,7 +257,9 @@ def main(args):
     dataset_train = build_dataset(image_set='train', args=args)
     dataset_val = build_dataset(image_set='val', args=args)
 
-    print("training dataset size: ", len(dataset_train))
+    dataset_train_size = len(dataset_train)
+    dataset_val_size = len(dataset_train)
+    print("training dataset size: ", dataset_train_size)
 
     if args.distributed:
         sampler_train = DistributedSampler(dataset_train)
@@ -300,7 +302,7 @@ def main(args):
 
     if args.eval:
         test_stats, coco_evaluator = evaluate(model, criterion, postprocessors,
-                                              data_loader_val, base_ds, device, args.output_dir)
+                                              data_loader_val, base_ds, device, args.output_dir, WandbEvaluator(epoch), epoch, num_batches=(dataset_train_size // args.batch_size) )
         if args.output_dir:
             utils.save_on_master(coco_evaluator.coco_eval["bbox"].eval, output_dir / "eval.pth")
         return
@@ -315,7 +317,7 @@ def main(args):
         if args.distributed:
             sampler_train.set_epoch(epoch)
         train_stats = train_one_epoch(
-            model, criterion, data_loader_train, optimizer, device, epoch,
+            model, criterion, data_loader_train, optimizer, device, epoch, num_batches=(dataset_train_size // args.batch_size),
             args.clip_max_norm)
         lr_scheduler.step()
         if args.output_dir:
@@ -333,7 +335,7 @@ def main(args):
                 }, checkpoint_path)
 
         test_stats, coco_evaluator = evaluate(
-            model, criterion, postprocessors, data_loader_val, base_ds, device, args.output_dir, WandbEvaluator(epoch), epoch
+            model, criterion, postprocessors, data_loader_val, base_ds, device, args.output_dir, WandbEvaluator(epoch), epoch, num_batches=(dataset_val_size // args.batch_size)
         )
 
         log_stats = {**{f'test_{k}': v for k, v in test_stats.items()},
