@@ -213,8 +213,8 @@ class WandbEvaluator(object):
         wandb.log(validation_images)
 
         for (target,result) in zip(targets,results):
-            print("samples from image id #", target["image_id"], " with ", target["boxes"].size()[0], "ground truth boxes and ", result["boxes"].size()[0], " predicted boxes" )
-        print("batch counter", self.batch_counter)
+            print("samples from image id #", int(target["image_id"]), " with ", target["boxes"].size()[0], "ground truth boxes and ", result["boxes"].size()[0], " predicted boxes" )
+        print("batch step counter", self.batch_counter)
         self.batch_counter += 1
 
 def main(args):
