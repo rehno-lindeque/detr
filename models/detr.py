@@ -299,7 +299,7 @@ class PostProcessRaw(nn.Module):
         scores, labels = prob[..., :-1].max(-1)
 
         # [cx,cy,w,h] format
-        boxes = out_bbox.unbind(-1)
+        boxes = box_ops.box_cxcywh(out_bbox)
 
         results = [{'scores': s, 'labels': l, 'boxes': b} for s, l, b in zip(scores, labels, boxes)]
 
