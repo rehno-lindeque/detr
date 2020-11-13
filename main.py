@@ -318,7 +318,9 @@ def main(args):
             sampler_train.set_epoch(epoch)
         train_stats = train_one_epoch(
             model, criterion, data_loader_train, optimizer, device, epoch, num_batches=(dataset_train_size // args.batch_size),
-            max_norm=args.clip_max_norm)
+            max_norm=args.clip_max_norm,
+            wandb_evaluator=WandbEvaluator(epoch)
+            )
         lr_scheduler.step()
         if args.output_dir:
             checkpoint_paths = [output_dir / 'checkpoint.pth']
