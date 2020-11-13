@@ -162,9 +162,10 @@ def reduce_dict(input_dict, average=True):
 
 
 class MetricLogger(object):
-    def __init__(self, epoch, delimiter="\t"):
+    def __init__(self, prefix, epoch, delimiter="\t"):
         self.meters = defaultdict(SmoothedValue)
         self.delimiter = delimiter
+        self.prefix = prefix
         self.epoch = epoch
 
     def update(self, **kwargs):
@@ -246,8 +247,8 @@ class MetricLogger(object):
                         time=str(iter_time), data=str(data_time)))
 
             # Log every step to wandb
-            train_stats = {k: meter.global_avg for k, meter in self.meters.items()}
-            log_stats = {**{f'train_{k}': v for k, v in train_stats.items()},
+            stats = {k: meter.global_avg for k, meter in self.meters.items()}
+            log_stats = {**{f'{self.prefix}_{k}': v for k, v in stats.items()},
                          'epoch': self.epoch}
             wandb.log(log_stats)
 
