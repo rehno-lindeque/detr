@@ -319,6 +319,7 @@ def main(args):
         train_stats = train_one_epoch(
             model, criterion, data_loader_train, optimizer, device, epoch, num_batches=(dataset_train_size // args.batch_size),
             max_norm=args.clip_max_norm,
+            postprocessors=postprocessors,
             wandb_evaluator=WandbEvaluator(epoch)
             )
         lr_scheduler.step()
