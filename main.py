@@ -182,8 +182,8 @@ class WandbEvaluator(object):
         self.epoch = epoch
 
     def send(self, targets, results, samples):
-        if (self.epoch % 1) != 0:
-            return
+        # if (self.epoch % 5) != 0:
+        #     return
         if (self.epoch % 10) != 0:
             self.batch_counter += 1
             return
