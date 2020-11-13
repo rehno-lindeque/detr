@@ -182,11 +182,11 @@ class WandbEvaluator(object):
         self.epoch = epoch
 
     def send(self, targets, results, samples):
-        if (self.epoch % 10) != 0:
+        if (self.epoch % 1) != 0:
             return
-        # if self.batch_counter > 0:
-        #     # Only one batch at a time works?
-        #     return
+        if (self.epoch % 10) != 0:
+            self.batch_counter += 1
+            return
         images,mask = samples.decompose()
 
         # for target in targets:
