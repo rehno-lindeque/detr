@@ -16,7 +16,8 @@ from datasets.panoptic_eval import PanopticEvaluator
 
 def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
                     data_loader: Iterable, optimizer: torch.optim.Optimizer,
-                    device: torch.device, epoch: int, num_batches : int, max_norm: float = 0):
+                    device: torch.device, epoch: int, num_batches : int, max_norm: float = 0,
+                    wandb_evaluator = None):
     model.train()
     criterion.train()
     metric_logger = utils.MetricLogger(prefix='train', epoch=epoch, num_batches=num_batches, delimiter="  ")
@@ -26,6 +27,7 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
     print_freq = 10
 
     for samples, targets in metric_logger.log_every(data_loader, print_freq, header):
+        cpu_samples = samples
         samples = samples.to(device)
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
 
@@ -33,6 +35,10 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
         loss_dict = criterion(outputs, targets)
         weight_dict = criterion.weight_dict
         losses = sum(loss_dict[k] * weight_dict[k] for k in loss_dict.keys() if k in weight_dict)
+
+        if wandb_evaluator is not None:
+            raw_results = postprocessors['raw'](outputs)
+            wandb_evaluator.send(targets,raw_results,cpu_samples)
 
         # reduce losses over all GPUs for logging purposes
         loss_dict_reduced = utils.reduce_dict(loss_dict)
