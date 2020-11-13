@@ -24,7 +24,7 @@ import wandb
 Image.MAX_IMAGE_PIXELS = 200000000
 
 # Hard-coded class labels
-wandb_class_labels = { 1: "part", 2: "no_object" }
+wandb_class_labels = { 0: "no_object0", 1: "part", 2: "no_object2" }
 
 # Initialize wandb
 wandb.init(
@@ -116,15 +116,11 @@ def get_args_parser():
     return parser
 
 def coco_annotation_to_wandb_bbox(ann, orig_size):
-    category_labels = {
-        1: "part",
-        2: "no_object"
-    }
     bbox = ann["bbox"]
     category_id = ann["category_id"]
     category_label = None
-    if category_id in category_labels.keys():
-        category_label = category_labels[category_id]
+    if category_id in wandb_class_labels.keys():
+        category_label = wandb_class_labels[category_id]
     else:
         category_label = str(category_id)
     wandb_bbox = {
@@ -143,14 +139,10 @@ def coco_annotation_to_wandb_bbox(ann, orig_size):
     return wandb_bbox
 
 def pytorch_box_to_wandb_bbox(box,box_id,category_id,prefix="",score=0):
-    category_labels = {
-        1: "part",
-        2: "no_object"
-    }
     category_label = None
     category_id = int(category_id)
-    if category_id in category_labels.keys():
-        category_label = category_labels[category_id]
+    if category_id in wandb_class_labels.keys():
+        category_label = wandb_class_labels[category_id]
     else:
         category_label = str(category_id)
     score_caption = ""
@@ -197,12 +189,14 @@ class WandbEvaluator(object):
             # ground truth
             k = 0
             for box, label in zip(target["boxes"], target["labels"]):
-                box_data_gt.append(pytorch_box_to_wandb_bbox(box,k,label,prefix="gt",score=0))
+                wandb_box = pytorch_box_to_wandb_bbox(box,k,label,prefix="gt",score=0)
+                box_data_gt.append(wandb_box)
                 k += 1
             # predictions
             k = 0
             for box, label, score in zip(result["boxes"], result["labels"], result["scores"]):
-                box_data_dt.append(pytorch_box_to_wandb_bbox(box,k,label,prefix="dt",score=score))
+                wandb_box = pytorch_box_to_wandb_bbox(box,k,label,prefix="dt",score=score)
+                box_data_dt.append(wandb_box)
                 k += 1
             wandb_images.append(wandb.Image(image, boxes = {
                 "ground_truth": { "box_data": box_data_gt, "class_labels": wandb_class_labels },
