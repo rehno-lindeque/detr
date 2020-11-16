@@ -15,10 +15,11 @@ def get_coco_api_from_dataset(dataset):
         return dataset.coco
 
 
-def build_dataset(image_set, args):
+def build_dataset(image_set, duplication_factor, args):
     if args.dataset_file == 'coco':
-        return build_coco(image_set, args)
+        return build_coco(image_set, duplication_factor, args)
     if args.dataset_file == 'coco_panoptic':
+        assert (duplication_factor == 1), "duplication factor must be 1 for panoptic coco dataset"
         # to avoid making panopticapi required for coco
         from .coco_panoptic import build as build_coco_panoptic
         return build_coco_panoptic(image_set, args)

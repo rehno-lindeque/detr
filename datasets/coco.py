@@ -15,9 +15,10 @@ import datasets.transforms as T
 
 
 class CocoDetection(torchvision.datasets.CocoDetection):
-    def __init__(self, img_folder, ann_file, transforms, return_masks):
+    def __init__(self, img_folder, ann_file, transforms, return_masks, duplication_factor=1):
         super(CocoDetection, self).__init__(img_folder, ann_file)
         self._transforms = transforms
+        self.duplication_factor = duplication_factor
         self.prepare = ConvertCocoPolysToMask(return_masks)
 
     def __getitem__(self, idx):
@@ -32,7 +33,7 @@ class CocoDetection(torchvision.datasets.CocoDetection):
         return img, target
 
     def __len__(self) -> int:
-        return len(self.ids) * 200
+        return len(self.ids) * self.duplication_factor
 
 def convert_coco_poly_to_mask(segmentations, height, width):
     masks = []
@@ -140,7 +141,7 @@ def make_coco_transforms(image_set):
     raise ValueError(f'unknown {image_set}')
 
 
-def build(image_set, args):
+def build(image_set, duplication_factor, args):
     root = Path(args.coco_path)
     assert root.exists(), f'provided COCO path {root} does not exist'
     mode = 'instances'
@@ -150,5 +151,5 @@ def build(image_set, args):
     }
 
     img_folder, ann_file = PATHS[image_set]
-    dataset = CocoDetection(img_folder, ann_file, transforms=make_coco_transforms(image_set), return_masks=args.masks)
+    dataset = CocoDetection(img_folder, ann_file, transforms=make_coco_transforms(image_set), return_masks=args.masks, duplication_factor=duplication_factor)
     return dataset
