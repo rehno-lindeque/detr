@@ -17,19 +17,21 @@ class HungarianMatcher(nn.Module):
     while the others are un-matched (and thus treated as non-objects).
     """
 
-    def __init__(self, cost_class: float = 1, cost_bbox: float = 1, cost_giou: float = 1):
+    def __init__(self, cost_class: float = 1, cost_bbox_coordinates: float = 1, cost_bbox_dimensions: float = 1, cost_giou: float = 1):
         """Creates the matcher
 
         Params:
             cost_class: This is the relative weight of the classification error in the matching cost
-            cost_bbox: This is the relative weight of the L1 error of the bounding box coordinates in the matching cost
+            cost_bbox_coordinates: This is the relative weight of the L1 error of the bounding box coordinates in the matching cost
+            cost_bbox_dimensions: This is the relative weight of the L1 error of the bounding box width & height in the matching cost
             cost_giou: This is the relative weight of the giou loss of the bounding box in the matching cost
         """
         super().__init__()
         self.cost_class = cost_class
-        self.cost_bbox = cost_bbox
+        self.cost_bbox_coordinates = cost_bbox_coordinates
+        self.cost_bbox_dimensions = cost_bbox_dimensions
         self.cost_giou = cost_giou
-        assert cost_class != 0 or cost_bbox != 0 or cost_giou != 0, "all costs cant be 0"
+        assert cost_class != 0 or cost_bbox_coordinates != 0 or cost_bbox_dimensions or cost_giou != 0, "all costs cant be 0"
 
     @torch.no_grad()
     def forward(self, outputs, targets):
@@ -68,13 +70,20 @@ class HungarianMatcher(nn.Module):
         cost_class = -out_prob[:, tgt_ids]
 
         # Compute the L1 cost between boxes
-        cost_bbox = torch.cdist(out_bbox, tgt_bbox, p=1)
+        # Note cdist with p=1 is the manhattan distance norm
+        # cost_bbox = torch.cdist(out_bbox, tgt_bbox, p=1)
+        out_bbox_coordinates = out_bbox[:,:2]
+        out_bbox_dimensions = out_bbox[:,:2]
+        tgt_bbox_coordinates = tgt_bbox[:,:2]
+        tgt_bbox_dimensions = tgt_bbox[:,:2]
+        cost_bbox_coordinates = torch.cdist(out_bbox_coordinates, tgt_bbox_coordinates, p=1)
+        cost_bbox_dimensions = torch.cdist(out_bbox_dimensions, tgt_bbox_dimensions, p=1)
 
         # Compute the giou cost betwen boxes
         cost_giou = -generalized_box_iou(box_cxcywh_to_xyxy(out_bbox), box_cxcywh_to_xyxy(tgt_bbox))
 
         # Final cost matrix
-        C = self.cost_bbox * cost_bbox + self.cost_class * cost_class + self.cost_giou * cost_giou
+        C = self.cost_bbox_coordinates * cost_bbox_coordinates + self.cost_bbox_dimensions * cost_bbox_dimensions + self.cost_class * cost_class + self.cost_giou * cost_giou
         C = C.view(bs, num_queries, -1).cpu()
 
         sizes = [len(v["boxes"]) for v in targets]
@@ -83,4 +92,4 @@ class HungarianMatcher(nn.Module):
 
 
 def build_matcher(args):
-    return HungarianMatcher(cost_class=args.set_cost_class, cost_bbox=args.set_cost_bbox, cost_giou=args.set_cost_giou)
+    return HungarianMatcher(cost_class=args.set_cost_class, cost_bbox_coordinates=args.set_cost_bbox_coordinates, cost_bbox_dimensions=args.set_cost_bbox_dimensions, cost_giou=args.set_cost_giou)

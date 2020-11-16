@@ -80,8 +80,10 @@ def get_args_parser():
     # * Matcher
     parser.add_argument('--set_cost_class', default=1, type=float,
                         help="Class coefficient in the matching cost")
-    parser.add_argument('--set_cost_bbox', default=5, type=float,
-                        help="L1 box coefficient in the matching cost")
+    parser.add_argument('--set_cost_bbox_coordinates', default=5, type=float,
+                        help="L1 box coefficient in the matching cost on center coordinates")
+    parser.add_argument('--set_cost_bbox_dimensions', default=1, type=float,
+                        help="L1 box coefficient in the matching cost on box width/height dimensions")
     parser.add_argument('--set_cost_giou', default=2, type=float,
                         help="giou box coefficient in the matching cost")
     # * Loss coefficients
