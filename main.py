@@ -164,7 +164,7 @@ def pytorch_box_to_wandb_bbox(box,box_id,category_id,prefix="",score=0):
         "box_caption" : "%s%d %s%s" % (prefix, int(box_id), category_label, score_caption),
         "scores" : {
             # "acc": 0.1,
-            "loss": float(score)
+            "score": float(score)
         },
         "domain" : "percentage"
     }
