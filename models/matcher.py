@@ -73,9 +73,9 @@ class HungarianMatcher(nn.Module):
         # Note cdist with p=1 is the manhattan distance norm
         # cost_bbox = torch.cdist(out_bbox, tgt_bbox, p=1)
         out_bbox_coordinates = out_bbox[:,:2]
-        out_bbox_dimensions = out_bbox[:,:2]
+        out_bbox_dimensions = out_bbox[:,2:]
         tgt_bbox_coordinates = tgt_bbox[:,:2]
-        tgt_bbox_dimensions = tgt_bbox[:,:2]
+        tgt_bbox_dimensions = tgt_bbox[:,2:]
         cost_bbox_coordinates = torch.cdist(out_bbox_coordinates, tgt_bbox_coordinates, p=1)
         cost_bbox_dimensions = torch.cdist(out_bbox_dimensions, tgt_bbox_dimensions, p=1)
 
