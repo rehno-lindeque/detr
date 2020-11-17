@@ -150,10 +150,17 @@ class SetCriterion(nn.Module):
         src_boxes = outputs['pred_boxes'][idx]
         target_boxes = torch.cat([t['boxes'][i] for t, (_, i) in zip(targets, indices)], dim=0)
 
-        loss_bbox = F.l1_loss(src_boxes, target_boxes, reduction='none')
+        src_boxes_coordinates = src_boxes[:,:2]
+        src_boxes_dimensions = src_boxes[:,2:]
+        target_boxes_coordinates = target_boxes[:,:2]
+        target_boxes_dimensions = target_boxes[:,2:]
+
+        loss_bbox_coordinates = F.l1_loss(src_boxes_coordinates, target_boxes_coordinates, reduction='none')
+        loss_bbox_dimensions = F.l1_loss(src_boxes_dimensions, target_boxes_dimensions, reduction='none')
 
         losses = {}
-        losses['loss_bbox'] = loss_bbox.sum() / num_boxes
+        losses['loss_bbox_coordinates'] = loss_bbox_coordinates.sum() / num_boxes
+        losses['loss_bbox_dimensions'] = loss_bbox_dimensions.sum() / num_boxes
 
         loss_giou = 1 - torch.diag(box_ops.generalized_box_iou(
             box_ops.box_cxcywh_to_xyxy(src_boxes),
@@ -350,7 +357,7 @@ def build(args):
     if args.masks:
         model = DETRsegm(model, freeze_detr=(args.frozen_weights is not None))
     matcher = build_matcher(args)
-    weight_dict = {'loss_ce': 1, 'loss_bbox': args.bbox_loss_coef}
+    weight_dict = {'loss_ce': 1, 'loss_bbox_coordinates': args.bbox_coordinates_loss_coef, 'loss_bbox_dimensions': args.bbox_dimensions_loss_coef}
     weight_dict['loss_giou'] = args.giou_loss_coef
     if args.masks:
         weight_dict["loss_mask"] = args.mask_loss_coef
