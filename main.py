@@ -179,7 +179,7 @@ class WandbEvaluator(object):
     def send(self, targets, results, samples):
         # if (self.epoch % 5) != 0:
         #     return
-        if (self.batch_counter % 10) != 0:
+        if (self.batch_counter % 50) != 0:
             self.batch_counter += 1
             return
         images,mask = samples.decompose()
